@@ -40,6 +40,7 @@ struct usb_monitor_t {
     int    usb_message_count;
     int    usb_message_index_read;
     int    usb_message_index_write;
+    int    enable_usb_monitor;
     char   write_buff[10];
     char*  init_flag;
 
