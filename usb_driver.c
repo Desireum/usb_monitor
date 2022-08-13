@@ -193,7 +193,7 @@ static long usb_monitor_ioctl(struct file *filp, unsigned int cmd, unsigned long
 }
 
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,0,0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,6,0)
 static const struct proc_ops usb_monitor_fops = {
     // .owner = THIS_MODULE,
     .proc_open = usb_monitor_open,
@@ -202,7 +202,7 @@ static const struct proc_ops usb_monitor_fops = {
     .proc_write = usb_monitor_write,
     .proc_poll = usb_monitor_poll,
     .proc_ioctl = usb_monitor_ioctl,
-};
+;
 #else
 static const struct file_operations usb_monitor_fops = {
     .owner = THIS_MODULE,
