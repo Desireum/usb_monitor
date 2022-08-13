@@ -225,10 +225,10 @@ int write_message(char status,struct usb_device *usb_dev){
     // 有些设备是没有设备名称的（比如 Arduino UNO），usb_dev->product 就是空指针，直接操作拷贝会导致系统死机
     if(usb_dev->product){
         printk("write_message %ld\n", strlen(usb_dev->product));
-        memcpy(monitor->message[index].name,usb_dev->product,strlen(usb_dev->product) );
+        memcpy(monitor->message[index].usb_name,usb_dev->product,strlen(usb_dev->product) );
     }else{
     // 这里很简单的拷贝一段字符串 
-        memcpy(monitor->message[index].name, "NULL", 4);
+        memcpy(monitor->message[index].usb_name, "NULL", 4);
         printk("write_message read nothing\n");
     }
     // USB状态记录 
@@ -262,7 +262,7 @@ static int usb_notifier_callback(struct notifier_block *self, unsigned long even
     // 状态判断 
         case USB_DEVICE_ADD:
     // USB设备插入时进行添加
-            index = write_in_message(1,usb_dev);
+            index = write_message(1,usb_dev);
             printk(KERN_INFO "The add device name is %s %d\n", monitor->message[index].name,
             monitor->usb_message_count);
     // 唤醒中断，注意这里已经进行加锁，在此线程结束后，usb_monitor_read数据才能真正被拷贝
@@ -272,7 +272,7 @@ static int usb_notifier_callback(struct notifier_block *self, unsigned long even
 
         case USB_DEVICE_REMOVE:
 
-            index = write_in_message(0,usb_dev);
+            index = write_message(0,usb_dev);
             printk(KERN_INFO "The remove device name is %s %d\n", monitor->message[index].name, 
                                                                   monitor->usb_message_count);
             // 唤醒中断，注意这里已经进行加锁，在此线程结束后，usb_monitor_read数据才能真正被拷贝
@@ -306,7 +306,7 @@ static int __init usb_monitor_init(void) {
     monitor->usb_message_count = 0;
     monitor->usb_message_index_read = 0;
     monitor->usb_message_index_write = 0;
-    monitor->flag = "start the usb_monitor_init...\n";
+    monitor->init_flag = "start the usb_monitor_init...\n";
     // 在/proc 下创建虚拟文件，用于 用户和内核交互，这里只有读的要求 
     proc_create("usb_monitor", 0644, NULL, &usb_monitor_fops);
 
