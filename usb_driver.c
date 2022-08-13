@@ -263,7 +263,7 @@ static int usb_notifier_callback(struct notifier_block *self, unsigned long even
         case USB_DEVICE_ADD:
     // USB设备插入时进行添加
             index = write_message(1,usb_dev);
-            printk(KERN_INFO "The add device name is %s %d\n", monitor->message[index].name,
+            printk(KERN_INFO "The add device name is %s %d\n", monitor->message[index].usb_name,
             monitor->usb_message_count);
     // 唤醒中断，注意这里已经进行加锁，在此线程结束后，usb_monitor_read数据才能真正被拷贝
             wake_up_interruptible(&monitor->usb_monitor_queue);
@@ -273,7 +273,7 @@ static int usb_notifier_callback(struct notifier_block *self, unsigned long even
         case USB_DEVICE_REMOVE:
 
             index = write_message(0,usb_dev);
-            printk(KERN_INFO "The remove device name is %s %d\n", monitor->message[index].name, 
+            printk(KERN_INFO "The remove device name is %s %d\n", monitor->message[index].usb_name, 
                                                                   monitor->usb_message_count);
             // 唤醒中断，注意这里已经进行加锁，在此线程结束后，usb_monitor_read数据才能真正被拷贝
             wake_up_interruptible(&monitor->usb_monitor_queue);
