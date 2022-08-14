@@ -256,7 +256,7 @@ static const struct proc_ops usb_monitor_fops = {
     .proc_ioctl = usb_monitor_ioctl,
 ;
 #else
-static const struct file_operations usb_monitor_fops = {
+static const struct file_operations usb_monitor_fops = {Registering callback functions
     .owner = THIS_MODULE,
     .read = usb_monitor_read,
     .write = usb_monitor_write,
@@ -360,29 +360,28 @@ static int usb_notifier_callback(struct notifier_block *self, unsigned long even
  */
 static int __init usb_monitor_init(void) { 
 
-    // 向内核申请空间
     monitor = kzalloc(sizeof(struct usb_monitor_t), GFP_KERNEL);
 
     if (!monitor) {
         LOGE("%s:failed to kzalloc\n", TAG);
         return -ENOMEM;
     }
-    // 初始化环形队列读写地址和大小 
+    //  Initializing the circular queue
     monitor->usb_message_count = 0;
     monitor->usb_message_index_read = 0;
     monitor->usb_message_index_write = 0;
     monitor->init_flag = "start the usb_monitor_init...\n";
-    // 在/proc 下创建虚拟文件，用于 用户和内核交互，这里只有读的要求 
+
+    //  Create file under /proc
     proc_create("usb_monitor", 0644, NULL, &usb_monitor_fops);
 
-    // 初始化等待队列，这里的作用为了让usb_monitor_read 没有数据的时候挂起，不让用户频繁调用
+    // Wait
     init_waitqueue_head(&monitor->usb_monitor_queue);
 
     mutex_init(&monitor->usb_monitor_mutex);
     monitor->fb_notif.notifier_call = usb_notifier_callback;
 
-    printk(KERN_INFO "Init USB hook.\n"); 
-    // 注册USB状态改变通知
+    // Registering callback functions
     usb_register_notify(&monitor->fb_notif);
     return 0;
 }
@@ -400,7 +399,7 @@ static void __exit usb_monitor_exit(void)
     remove_proc_entry("usb_monitor", NULL);
 
     usb_unregister_notify(&monitor->fb_notif); 
-    printk(KERN_INFO "Remove USB hook\n");
+
     kfree(monitor);
 }
 
