@@ -106,7 +106,7 @@ private:
 };
 
 
-static void DoUsbMonitor(void *arg){
+static void * DoUsbMonitor(void *arg){
         int ret;
         //static int index = 0;
         ssize_t leng = 0, i = 0;
