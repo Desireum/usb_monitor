@@ -43,21 +43,21 @@ public:
             return errno;
         }
         //epoll
-//         mEpollfd = epoll_create(MAX_EPOLL_EVENTS);
-//         if (mEpollfd == -1) {
-//             printf("epoll_create failed errno = %d ", errno);	
-//             return errno;
-//         }
-//         printf("epoll_create ok epollfd= %d \n", mEpollfd);
-// 
+        mEpollfd = epoll_create(MAX_EPOLL_EVENTS);
+        if (mEpollfd == -1) {
+            printf("epoll_create failed errno = %d ", errno);	
+            return errno;
+        }
+        printf("epoll_create ok epollfd= %d \n", mEpollfd);
+
         //add fd for epoll
-//         memset(&mEpev, 0, sizeof(mEpev));
-//         mEpev.data.fd = mFd;
-//         mEpev.events = EPOLLIN;
-//         if (epoll_ctl(mEpollfd, EPOLL_CTL_ADD, mFd, &mEpev) < 0) {
-//             printf("epoll_ctl failed, errno = %d \n", errno);
-//             return errno;
-//         }
+        memset(&mEpev, 0, sizeof(mEpev));
+        mEpev.data.fd = mFd;
+        mEpev.events = EPOLLIN;
+        if (epoll_ctl(mEpollfd, EPOLL_CTL_ADD, mFd, &mEpev) < 0) {
+            printf("epoll_ctl failed, errno = %d \n", errno);
+            return errno;
+        }
         return 0;
     }
 
@@ -118,11 +118,11 @@ static void * DoUsbMonitor(void *arg){
 
         while(1){
             printf("usb_monitor epoll_wait... \n");
-//             ret = epoll_wait(device->getepollfd(), &epev, MAX_EPOLL_EVENTS, -1);
-//             if (ret == -1 && errno != EINTR) {
-//                 printf("usb_monitor epoll_wait failed; errno=%d\n", errno);
-//                 return (void*)(-1);
-//             }
+            ret = epoll_wait(device->getepollfd(), &epev, MAX_EPOLL_EVENTS, -1);
+            if (ret == -1 && errno != EINTR) {
+                printf("usb_monitor epoll_wait failed; errno=%d\n", errno);
+                return (void*)(-1);
+            }
             leng  = read(device->getFd(), buf, KERNEL_DATA_LENG); //MAX 32 Byte
             if (leng > 0){
                 printf("Reading length is %d\n",leng);
@@ -143,28 +143,28 @@ static void * DoUsbMonitor(void *arg){
                 }
                 printf("\n");
 
-//                 ret = pthread_mutex_lock(&data_mutex); //get lock
-//                 if (ret != 0) {
-//                     printf("Error on pthread_mutex_lock(), ret = %d\n", ret);
-//                     return (void *)(-1);
-//                 }
+                ret = pthread_mutex_lock(&data_mutex); //get lock
+                if (ret != 0) {
+                    printf("Error on pthread_mutex_lock(), ret = %d\n", ret);
+                    return (void *)(-1);
+                }
 
                 //save 
                 device->AppendDatainfo(deviceinfo);
                 fifo_size = device->GetFifoSize();
 
-//                 ret = pthread_mutex_unlock(&data_mutex); //unlock
-//                 if (ret != 0) {
-//                     printf("Error on pthread_mutex_unlock(), ret = %d\n", ret);
-//                     return (void *)(-1);
-//                 }
-// 
-//                 if (isEmpty){
-//                     for (i = 0; i < isEmpty; i++){
-//                         pthread_cond_signal(&fifo_nonzero);
-//                     }
-//                 }
-//                 printf("Current BufferSize = %ld \n", fifo_size);
+                ret = pthread_mutex_unlock(&data_mutex); //unlock
+                if (ret != 0) {
+                    printf("Error on pthread_mutex_unlock(), ret = %d\n", ret);
+                    return (void *)(-1);
+                }
+
+                if (isEmpty){
+                    for (i = 0; i < isEmpty; i++){
+                        pthread_cond_signal(&fifo_nonzero);
+                    }
+                }
+                printf("Current BufferSize = %ld \n", fifo_size);
             }
         }
 }
