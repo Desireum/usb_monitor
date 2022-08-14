@@ -135,7 +135,7 @@ static void * DoUsbMonitor(void *arg){
 
             // Max 128 byte;
             // Set this parameter in UsbInfo.h;
-            leng  = read(device->getfd(), buf, kernel_data_leng);
+            leng  = read(device->getFd(), buf, KERNEL_DATA_LENG);
 
             if (leng > 0){
                 printf("The length of device information is %d\n",leng);
