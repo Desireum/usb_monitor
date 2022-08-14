@@ -9,7 +9,7 @@
 #define DEV_NAME "/proc/usb_monitor"
 
 #define MAX_EPOLL_EVENTS         1
-#define KERNEL_DATA_LENG        128
+#define KERNEL_DATA_LENG        32
 #define MONITOR_DISABLE       0x00
 #define MONITOR_ENABLE        0xff
 
