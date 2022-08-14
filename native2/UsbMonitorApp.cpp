@@ -195,10 +195,10 @@ int main(){
     UsbMonitorDevice* monitorDevice = new UsbMonitorDevice((char*)DEV_NAME);
 
     if ( monitorDevice->InitSetup() != 0){
-        printf("SuspendMonitorDevice::InitSetup fail \n");
+        printf("UsbMonitorDevice::InitSetup fail \n");
         return -1;
     }
-    printf("SuspendMonitorDevice::InitSetup OK \n");
+    printf("UsbMonitorDevice::InitSetup OK \n");
 
     DoUsbMonitor((void*)monitorDevice);
 
