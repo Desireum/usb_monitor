@@ -250,7 +250,7 @@ static const struct file_operations usb_monitor_fops = {
 //     return index;
 // }
 
-int write_message(char status,struct usb_device *usb_dev, OUT int *index){
+void write_message(char status,struct usb_device *usb_dev, OUT int *index){
 
     int tmp_index;
 
