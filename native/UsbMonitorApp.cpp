@@ -150,7 +150,7 @@ static void * DoUsbMonitor(void *arg){
                 }
 
                 //save 
-                device->AppendDatainfo(deviceinfo.info);
+                device->AppendDatainfo(deviceinfo);
                 fifo_size = device->GetFifoSize();
 
                 ret = pthread_mutex_unlock(&data_mutex); //unlock
