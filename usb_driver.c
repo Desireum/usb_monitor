@@ -23,6 +23,8 @@
 #define MESSAGE_BUFFER_SIZE	512
 #define CMD_GET_STATUS	_IOR(0xFF, 123, unsigned char)
 
+#define OUT 
+#define IN
 
 struct usb_message_t {
     signed long long kernel_time;   // 8 bytes
@@ -213,9 +215,44 @@ static const struct file_operations usb_monitor_fops = {
 };
 #endif
 
-int write_message(char status,struct usb_device *usb_dev){
+// int write_message(char status,struct usb_device *usb_dev){
+// 
+//     int index;
+// 
+//     mutex_lock(&monitor->usb_monitor_mutex);
+// 
+//     index = monitor->usb_message_index_write;
+//     monitor->message[index].kernel_time = ktime_to_ns(ktime_get());
+// 这里需要非常的注意
+// 有些设备是没有设备名称的（比如 Arduino UNO），usb_dev->product 就是空指针，直接操作拷贝会导致系统死机
+//     if(usb_dev->product){
+//         printk("write_message %ld\n", strlen(usb_dev->product));
+//         memcpy(monitor->message[index].usb_name,usb_dev->product,strlen(usb_dev->product) );
+//     }else{
+// 这里很简单的拷贝一段字符串 
+//         memcpy(monitor->message[index].usb_name, "NULL", 4);
+//         printk("write_message read nothing\n");
+//     }
+// USB状态记录 
+//     monitor->message[index].plug_flag = status;
+// ktime_get_ts64(&monitor->message[index].timeval_utc);
+//     if (monitor->usb_message_count < MESSAGE_BUFFER_SIZE){
+//         monitor->usb_message_count++;
+//     }
+// 环形队列中写地址增加，超出回0
+//     monitor->usb_message_index_write++;
+//     if (monitor->usb_message_index_write >= MESSAGE_BUFFER_SIZE){
+//         monitor->usb_message_index_write = 0;
+//     }
+// 
+//     mutex_unlock(&monitor->usb_monitor_mutex);
+// 
+//     return index;
+// }
 
-    int index;
+int write_message(char status,struct usb_device *usb_dev, OUT int *index){
+
+    int tmp_index;
 
     mutex_lock(&monitor->usb_monitor_mutex);
 
@@ -243,11 +280,11 @@ int write_message(char status,struct usb_device *usb_dev){
         monitor->usb_message_index_write = 0;
     }
 
+    *index = tmp_index;
     mutex_unlock(&monitor->usb_monitor_mutex);
 
-    return index;
+    //return index;
 }
-
 
 
 static int usb_notifier_callback(struct notifier_block *self, unsigned long event, void *dev) {
@@ -262,7 +299,8 @@ static int usb_notifier_callback(struct notifier_block *self, unsigned long even
     // 状态判断 
         case USB_DEVICE_ADD:
     // USB设备插入时进行添加
-            index = write_message(1,usb_dev);
+            //index = write_message(1,usb_dev);
+            write_message(1, usb_dev, &index);
             printk(KERN_INFO "The add device name is %s %d\n", monitor->message[index].usb_name,
             monitor->usb_message_count);
     // 唤醒中断，注意这里已经进行加锁，在此线程结束后，usb_monitor_read数据才能真正被拷贝
@@ -272,7 +310,8 @@ static int usb_notifier_callback(struct notifier_block *self, unsigned long even
 
         case USB_DEVICE_REMOVE:
 
-            index = write_message(0,usb_dev);
+            //index = write_message(0,usb_dev);
+            write_message(0, usb_dev, &index);
             printk(KERN_INFO "The remove device name is %s %d\n", monitor->message[index].usb_name, 
                                                                   monitor->usb_message_count);
             // 唤醒中断，注意这里已经进行加锁，在此线程结束后，usb_monitor_read数据才能真正被拷贝
