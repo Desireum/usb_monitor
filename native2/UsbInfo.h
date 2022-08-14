@@ -16,7 +16,7 @@
 size_t BUFFER_SIZE = 1024;
 
 struct DataInfo{
-    uint8_t kernel_time[8];       //8 Byte 
+    uint8_t kernel_time[8];       //8 Byte
     uint8_t status;               //1 byte
     int8_t  name[128];            //128 byte
 };

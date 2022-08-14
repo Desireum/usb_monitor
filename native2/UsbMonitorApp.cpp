@@ -1,3 +1,9 @@
+/**
+    Application for usb device plugging detection
+    @file UsbMonitorApp.cpp
+    @author Wang Taorui
+    @version 2022/8/14
+*/
 #include <cinttypes>
 #include <numeric>
 #include <set>
@@ -14,7 +20,6 @@
 #include <unistd.h>
 #include "RingBuffer.h"
 #include "UsbInfo.h"
-
 
 using namespace std;
 
@@ -92,7 +97,7 @@ public:
         mRingBuffer.Reset(capacity);
     }
 
-    bool FifoIsEmpty() { 
+    bool FifoIsEmpty() {
         return mRingBuffer.IsEmpty();
     }
 
@@ -105,7 +110,11 @@ private:
     RingBuffer<UsbMonitorInfo> mRingBuffer;
 };
 
-
+/**
+ * Monitor USB device plugging and unplugging status, and output and record that status
+ *
+ * @param arg: device name; /proc/usb_monitor;
+ */
 static void * DoUsbMonitor(void *arg){
         int ret;
         //static int index = 0;
@@ -123,37 +132,48 @@ static void * DoUsbMonitor(void *arg){
                 printf("usb_monitor epoll_wait failed; errno=%d\n", errno);
                 return (void*)(-1);
             }
-            leng  = read(device->getFd(), buf, KERNEL_DATA_LENG); //MAX 32 Byte
+
+            // Max 128 byte;
+            // Set this parameter in UsbInfo.h;
+            leng  = read(device->getfd(), buf, kernel_data_leng);
+
             if (leng > 0){
-                printf("Reading length is %d\n",leng);
-                //8 字节的 kernel time
+                printf("The length of device information is %d\n",leng);
+
+                // Record kernel time;
+                // size : 8 Bytes;
                 for (i = 0; i < 8; i++){
                     deviceinfo.info.kernel_time[i] = buf[i];
                     printf("kernel_time[%d] = 0x%x \n", i, deviceinfo.info.kernel_time[i]);
                 }
-                // 记录插拔状态
+
+                // Record USB plugging status;
                 deviceinfo.info.status = buf[8];
-                // 拷贝USB名称
+
+                // Record USB device name;
                 memcpy(deviceinfo.info.name, buf+9,leng-9);
-    
+
+                //Output usb device plugging information
                 if(deviceinfo.info.status==1){
-                    printf("USB %s -> plug In \n",deviceinfo.info.name);
+                    printf("Device name: %s ====== PLUG IN \n",deviceinfo.info.name);
                 }else{
-                    printf("USB %s -> plug Out \n",deviceinfo.info.name);
+                    printf("Device name: %s ====== PLUG OUT \n",deviceinfo.info.name);
                 }
                 printf("\n");
 
-                ret = pthread_mutex_lock(&data_mutex); //get lock
+                // Get lock;
+                ret = pthread_mutex_lock(&data_mutex);
                 if (ret != 0) {
                     printf("Error on pthread_mutex_lock(), ret = %d\n", ret);
                     return (void *)(-1);
                 }
 
-                //save 
+                // Save infomation;
                 device->AppendDatainfo(deviceinfo);
                 fifo_size = device->GetFifoSize();
 
-                ret = pthread_mutex_unlock(&data_mutex); //unlock
+                // Unlock;
+                ret = pthread_mutex_unlock(&data_mutex);
                 if (ret != 0) {
                     printf("Error on pthread_mutex_unlock(), ret = %d\n", ret);
                     return (void *)(-1);

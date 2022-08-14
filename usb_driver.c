@@ -1,3 +1,9 @@
+/**
+    Drivers for usb device plug and play detection
+    @file usb_driver.c
+    @author Wang Taorui
+    @version 2022/8/14
+*/
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
@@ -23,30 +29,29 @@
 #define MESSAGE_BUFFER_SIZE	512
 #define CMD_GET_STATUS	_IOR(0xFF, 123, unsigned char)
 
-#define OUT 
+
+#define OUT
 #define IN
 
+
 struct usb_message_t {
-    signed long long kernel_time;   // 8 bytes
-    //struct           timespec64 timeval_utc;  // 16 bytes
-    char             plug_flag;                  // 1 for plugged; 0 for unplugged;
+    signed long long kernel_time;   // 8 bytes;
+    char             plug_flag;     // 1 means insert usb,0 means unplug usb;
     char             usb_name[32];
 };
 
 
 struct usb_monitor_t {
     struct notifier_block fb_notif;
-
-    // USB monitor data buffer;
     struct usb_message_t message[MESSAGE_BUFFER_SIZE];
-    int    usb_message_count;
-    int    usb_message_index_read;
-    int    usb_message_index_write;
+    int    usb_message_count;      // Number of recorded data;
+    int    usb_message_index_read; // Read adress;
+    int    usb_message_index_write;// Write adress;
     int    enable_usb_monitor;
     char   write_buff[10];
     char*  init_flag;
 
-    wait_queue_head_t usb_monitor_queue; // Define wait queue head;
+    wait_queue_head_t usb_monitor_queue;           // Define wait queue head;
     struct            mutex usb_monitor_mutex;     // Mutex;
 };
 
@@ -55,6 +60,15 @@ static struct usb_monitor_t *monitor;
 static char *TAG = "MONITOR";
 
 
+/**
+ * Implementation of the read interface
+ * 
+ * @param filp;
+ * @param buf;
+ * @param ppos;
+ *
+ * @return size of message;
+ */
 static ssize_t usb_monitor_read(struct file *filp, char __user *buf, size_t size, loff_t *ppos){
     int index;
     size_t message_size = sizeof(struct usb_message_t);
@@ -69,25 +83,34 @@ static ssize_t usb_monitor_read(struct file *filp, char __user *buf, size_t size
     wait_event_interruptible(monitor->usb_monitor_queue, monitor->usb_message_count > 0);
     LOGI("%s:read wait event pass\n", TAG);
 
+    // Get lock;
     mutex_lock(&monitor->usb_monitor_mutex);
 
+    // Read data from kernel space to user space if there is data in the circular queue;
     if (monitor->usb_message_count > 0) {
         index = monitor->usb_message_index_read;
 
         if (copy_to_user(buf, &monitor->message[index], message_size)) {
             LOGE("%s:copy_from_user error!\n", TAG);
+            // Unlock;
             mutex_unlock(&monitor->usb_monitor_mutex);
             return -EFAULT;
         }
 
+        // Add 1 to the read address in the circular queue;
         monitor->usb_message_index_read++;
+
+        // If the read address exceeds the maximum value of the circular queue address, 
+        // set to zero;
         if (monitor->usb_message_index_read >= MESSAGE_BUFFER_SIZE){
             monitor->usb_message_index_read = 0;
         }
 
+        // After reading the data, the total amount of data in the queue is subtracted by one
         monitor->usb_message_count--;
     }
 
+    // Unlock;
     mutex_unlock(&monitor->usb_monitor_mutex);
 
     LOGI("%s:read count:%d\n", TAG, message_size);
@@ -96,6 +119,15 @@ static ssize_t usb_monitor_read(struct file *filp, char __user *buf, size_t size
 }
 
 
+/**
+ * Implementation of the write interface
+ * 
+ * @param filp;
+ * @param buf;
+ * @param ppos;
+ *
+ * @return size of message;
+ */
 static ssize_t usb_monitor_write(struct file *filp, const char __user *buf, size_t size, loff_t *ppos){
     char end_flag = 0x0a, cmd;
 
@@ -141,7 +173,14 @@ static ssize_t usb_monitor_write(struct file *filp, const char __user *buf, size
 }
 
 
-
+/**
+ * Implementation of the poll interface
+ *
+ * @param filp;
+ * @param wait;
+ *
+ * @return mask
+ */
 static unsigned int usb_monitor_poll(struct file *filp, struct poll_table_struct *wait){
     unsigned int mask = 0;
 
@@ -159,6 +198,15 @@ static unsigned int usb_monitor_poll(struct file *filp, struct poll_table_struct
 }
 
 
+/**
+ * Implementation of the ioctl interface
+ *
+ * @param filp;
+ * @param cmd;
+ * @param arg;
+ *
+ * @return 0;
+ */
 static long usb_monitor_ioctl(struct file *filp, unsigned int cmd, unsigned long arg){
     void __user *ubuf = (void __user *)arg;
     unsigned char status;
@@ -195,6 +243,8 @@ static long usb_monitor_ioctl(struct file *filp, unsigned int cmd, unsigned long
 }
 
 
+// Register a node in /proc according to the version of the kernel;
+// // ************************
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5,6,0)
 static const struct proc_ops usb_monitor_fops = {
     // .owner = THIS_MODULE,
@@ -215,124 +265,99 @@ static const struct file_operations usb_monitor_fops = {
 };
 #endif
 
-// int write_message(char status,struct usb_device *usb_dev){
-// 
-//     int index;
-// 
-//     mutex_lock(&monitor->usb_monitor_mutex);
-// 
-//     index = monitor->usb_message_index_write;
-//     monitor->message[index].kernel_time = ktime_to_ns(ktime_get());
-// 这里需要非常的注意
-// 有些设备是没有设备名称的（比如 Arduino UNO），usb_dev->product 就是空指针，直接操作拷贝会导致系统死机
-//     if(usb_dev->product){
-//         printk("write_message %ld\n", strlen(usb_dev->product));
-//         memcpy(monitor->message[index].usb_name,usb_dev->product,strlen(usb_dev->product) );
-//     }else{
-// 这里很简单的拷贝一段字符串 
-//         memcpy(monitor->message[index].usb_name, "NULL", 4);
-//         printk("write_message read nothing\n");
-//     }
-// USB状态记录 
-//     monitor->message[index].plug_flag = status;
-// ktime_get_ts64(&monitor->message[index].timeval_utc);
-//     if (monitor->usb_message_count < MESSAGE_BUFFER_SIZE){
-//         monitor->usb_message_count++;
-//     }
-// 环形队列中写地址增加，超出回0
-//     monitor->usb_message_index_write++;
-//     if (monitor->usb_message_index_write >= MESSAGE_BUFFER_SIZE){
-//         monitor->usb_message_index_write = 0;
-//     }
-// 
-//     mutex_unlock(&monitor->usb_monitor_mutex);
-// 
-//     return index;
-// }
 
+/**
+ * Writing data to the circular queue;
+ *
+ * @param status;
+ * @param usb_dev;
+ * @param OUT index;
+ */
 void write_message(char status,struct usb_device *usb_dev, OUT int *index){
 
     int tmp_index;
 
+    LOGI("%s:%s\n", TAG, __func__);
 
     tmp_index = monitor->usb_message_index_write;
     monitor->message[tmp_index].kernel_time = ktime_to_ns(ktime_get());
 
-    //mutex_lock(&monitor->usb_monitor_mutex);
-    // 这里需要非常的注意
-    // 有些设备是没有设备名称的（比如 Arduino UNO），usb_dev->product 就是空指针，直接操作拷贝会导致系统死机
+    // Determine if the device name is empty to avoid crashing the program;
     if(usb_dev->product){
         printk("write_message %ld\n", strlen(usb_dev->product));
         memcpy(monitor->message[tmp_index].usb_name,usb_dev->product,strlen(usb_dev->product) );
     }else{
-    // 这里很简单的拷贝一段字符串 
         memcpy(monitor->message[tmp_index].usb_name, "NULL", 4);
-        printk("write_message read nothing\n");
+        printk("write_message get nothing\n");
     }
-    // USB状态记录 
+    // Record usb device plugging status;
     monitor->message[tmp_index].plug_flag = status;
-    // ktime_get_ts64(&monitor->message[tmp_index].timeval_utc);
+
+    // Add one to the number of data in the circular queue
     if (monitor->usb_message_count < MESSAGE_BUFFER_SIZE){
         monitor->usb_message_count++;
     }
-    // 环形队列中写地址增加，超出回0
+
+    // If the read address exceeds the maximum value of the circular queue address,
+    // set to zero;
     monitor->usb_message_index_write++;
     if (monitor->usb_message_index_write >= MESSAGE_BUFFER_SIZE){
         monitor->usb_message_index_write = 0;
     }
 
     *index = tmp_index;
-    //mutex_unlock(&monitor->usb_monitor_mutex);
-
-    //return index;
 }
 
 
+/**
+ * Implementation of notifier callback function;
+ *
+ * @param self;
+ * @param event;
+ * @param dev;
+ */
 static int usb_notifier_callback(struct notifier_block *self, unsigned long event, void *dev) {
 
     struct usb_device *usb_dev = (struct usb_device*)dev;
     int index;
 
-    // 互斥锁，保护monitor中的数据
+    // Get locked
     mutex_lock(&monitor->usb_monitor_mutex);
 
     switch (event) {
-    // 状态判断 
+//         #define USB_DEVICE_ADD     0x0001
+//         #define USB_DEVICE_REMOVE  0x0002
+//         #define USB_BUS_ADD        0x0003
+//         #define USB_BUS_REMOVE     0x0004
+
         case USB_DEVICE_ADD:
-    // USB设备插入时进行添加
-            //index = write_message(1,usb_dev);
             write_message(1, usb_dev, &index);
             printk(KERN_INFO "The add device name is %s %d\n", monitor->message[index].usb_name,
             monitor->usb_message_count);
-    // 唤醒中断，注意这里已经进行加锁，在此线程结束后，usb_monitor_read数据才能真正被拷贝
+            // Wake up;
             wake_up_interruptible(&monitor->usb_monitor_queue);
-
             break;
 
         case USB_DEVICE_REMOVE:
-
-            //index = write_message(0,usb_dev);
             write_message(0, usb_dev, &index);
-            printk(KERN_INFO "The remove device name is %s %d\n", monitor->message[index].usb_name, 
-                                                                  monitor->usb_message_count);
-            // 唤醒中断，注意这里已经进行加锁，在此线程结束后，usb_monitor_read数据才能真正被拷贝
+            printk(KERN_INFO "The remove device name is %s %d\n", monitor->message[index].usb_name, monitor->usb_message_count);
+            // Wake up;
             wake_up_interruptible(&monitor->usb_monitor_queue);
-
-            // printk(KERN_INFO "USB device removed %s \n",usb_dev->product); 
             break;
-        case USB_BUS_ADD: 
-          // printk(KERN_INFO "USB Bus added \n"); 
-          break; 
-        case USB_BUS_REMOVE: 
-          // printk(KERN_INFO "USB Bus removed \n"); 
-          break;
+        default:
+            break;
     }
-
+    
+    // Unlock;
     mutex_unlock(&monitor->usb_monitor_mutex);
 
     return NOTIFY_OK;
 }
 
+
+/**
+ * Initialization
+ */
 static int __init usb_monitor_init(void) { 
 
     // 向内核申请空间
@@ -363,6 +388,9 @@ static int __init usb_monitor_init(void) {
 }
 
 
+/**
+ * Exit
+ */
 static void __exit usb_monitor_exit(void)
 {
 
