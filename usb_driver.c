@@ -28,7 +28,7 @@
 
 struct usb_message_t {
     signed long long kernel_time;   // 8 bytes
-    struct           timespec64 timeval_utc;  // 16 bytes
+    //struct           timespec64 timeval_utc;  // 16 bytes
     char             plug_flag;                  // 1 for plugged; 0 for unplugged;
     char             usb_name[32];
 };
