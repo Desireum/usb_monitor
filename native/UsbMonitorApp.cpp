@@ -43,21 +43,21 @@ public:
             return errno;
         }
         //epoll
-        mEpollfd = epoll_create(MAX_EPOLL_EVENTS);
-        if (mEpollfd == -1) {
-            printf("epoll_create failed errno = %d ", errno);	
-            return errno;
-        }
-        printf("epoll_create ok epollfd= %d \n", mEpollfd);
-
+//         mEpollfd = epoll_create(MAX_EPOLL_EVENTS);
+//         if (mEpollfd == -1) {
+//             printf("epoll_create failed errno = %d ", errno);	
+//             return errno;
+//         }
+//         printf("epoll_create ok epollfd= %d \n", mEpollfd);
+// 
         //add fd for epoll
-        memset(&mEpev, 0, sizeof(mEpev));
-        mEpev.data.fd = mFd;
-        mEpev.events = EPOLLIN;
-        if (epoll_ctl(mEpollfd, EPOLL_CTL_ADD, mFd, &mEpev) < 0) {
-            printf("epoll_ctl failed, errno = %d \n", errno);
-            return errno;
-        }
+//         memset(&mEpev, 0, sizeof(mEpev));
+//         mEpev.data.fd = mFd;
+//         mEpev.events = EPOLLIN;
+//         if (epoll_ctl(mEpollfd, EPOLL_CTL_ADD, mFd, &mEpev) < 0) {
+//             printf("epoll_ctl failed, errno = %d \n", errno);
+//             return errno;
+//         }
         return 0;
     }
 
