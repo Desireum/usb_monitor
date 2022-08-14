@@ -121,20 +121,20 @@ static void DoUsbMonitor(void *arg){
             ret = epoll_wait(device->getepollfd(), &epev, MAX_EPOLL_EVENTS, -1);
             if (ret == -1 && errno != EINTR) {
                 printf("usb_monitor epoll_wait failed; errno=%d\n", errno);
-                return (void*)-1;
+                return (void*)(-1);
             }
             leng  = read(device->getFd(), buf, KERNEL_DATA_LENG); //MAX 32 Byte
             if (leng == KERNEL_DATA_LENG){
                 printf("Reading length is %d\n",leng);
                 //8 字节的 kernel time
                 for (i = 0; i < 8; i++){
-                    deviceinfo.info.kernel_time[i] = mBuf[i];
+                    deviceinfo.info.kernel_time[i] = buf[i];
                     printf("kernel_time[%d] = 0x%x \n", i, deviceinfo.info.kernel_time[i]);
                 }
                 // 记录插拔状态
-                deviceinfo.info.status = mBuf[8];
+                deviceinfo.info.status = buf[8];
                 // 拷贝USB名称
-                memcpy(deviceinfo.info.name, mBuf+9,leng-9);
+                memcpy(deviceinfo.info.name, buf+9,leng-9);
     
                 if(deviceinfo.info.status==1){
                     printf("USB %s -> plug In \n",deviceinfo.info.name);
@@ -146,7 +146,7 @@ static void DoUsbMonitor(void *arg){
                 ret = pthread_mutex_lock(&data_mutex); //get lock
                 if (ret != 0) {
                     printf("Error on pthread_mutex_lock(), ret = %d\n", ret);
-                    return (void *)-1;
+                    return (void *)(-1);
                 }
 
                 //save 
@@ -156,7 +156,7 @@ static void DoUsbMonitor(void *arg){
                 ret = pthread_mutex_unlock(&data_mutex); //unlock
                 if (ret != 0) {
                     printf("Error on pthread_mutex_unlock(), ret = %d\n", ret);
-                    return (void *)-1;
+                    return (void *)(-1);
                 }
 
                 if (isEmpty){
