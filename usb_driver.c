@@ -275,9 +275,9 @@ int write_message(char status,struct usb_device *usb_dev, OUT int *index){
         monitor->usb_message_count++;
     }
     // 环形队列中写地址增加，超出回0
-    monitor->usb_message_tmp_index_write++;
-    if (monitor->usb_message_tmp_index_write >= MESSAGE_BUFFER_SIZE){
-        monitor->usb_message_tmp_index_write = 0;
+    monitor->usb_message_index_write++;
+    if (monitor->usb_message_index_write >= MESSAGE_BUFFER_SIZE){
+        monitor->usb_message_index_write = 0;
     }
 
     *index = tmp_index;
