@@ -254,10 +254,11 @@ void write_message(char status,struct usb_device *usb_dev, OUT int *index){
 
     int tmp_index;
 
-    mutex_lock(&monitor->usb_monitor_mutex);
 
     tmp_index = monitor->usb_message_index_write;
     monitor->message[tmp_index].kernel_time = ktime_to_ns(ktime_get());
+
+    mutex_lock(&monitor->usb_monitor_mutex);
     // 这里需要非常的注意
     // 有些设备是没有设备名称的（比如 Arduino UNO），usb_dev->product 就是空指针，直接操作拷贝会导致系统死机
     if(usb_dev->product){
