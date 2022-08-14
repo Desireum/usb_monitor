@@ -124,7 +124,7 @@ static void * DoUsbMonitor(void *arg){
 //                 return (void*)(-1);
 //             }
             leng  = read(device->getFd(), buf, KERNEL_DATA_LENG); //MAX 32 Byte
-            if (leng == KERNEL_DATA_LENG){
+            if (leng > 0){
                 printf("Reading length is %d\n",leng);
                 //8 字节的 kernel time
                 for (i = 0; i < 8; i++){
