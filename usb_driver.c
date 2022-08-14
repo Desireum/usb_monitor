@@ -256,28 +256,28 @@ int write_message(char status,struct usb_device *usb_dev, OUT int *index){
 
     mutex_lock(&monitor->usb_monitor_mutex);
 
-    index = monitor->usb_message_index_write;
-    monitor->message[index].kernel_time = ktime_to_ns(ktime_get());
+    tmp_index = monitor->usb_message_index_write;
+    monitor->message[tmp_index].kernel_time = ktime_to_ns(ktime_get());
     // 这里需要非常的注意
     // 有些设备是没有设备名称的（比如 Arduino UNO），usb_dev->product 就是空指针，直接操作拷贝会导致系统死机
     if(usb_dev->product){
         printk("write_message %ld\n", strlen(usb_dev->product));
-        memcpy(monitor->message[index].usb_name,usb_dev->product,strlen(usb_dev->product) );
+        memcpy(monitor->message[tmp_index].usb_name,usb_dev->product,strlen(usb_dev->product) );
     }else{
     // 这里很简单的拷贝一段字符串 
-        memcpy(monitor->message[index].usb_name, "NULL", 4);
+        memcpy(monitor->message[tmp_index].usb_name, "NULL", 4);
         printk("write_message read nothing\n");
     }
     // USB状态记录 
-    monitor->message[index].plug_flag = status;
-    // ktime_get_ts64(&monitor->message[index].timeval_utc);
+    monitor->message[tmp_index].plug_flag = status;
+    // ktime_get_ts64(&monitor->message[tmp_index].timeval_utc);
     if (monitor->usb_message_count < MESSAGE_BUFFER_SIZE){
         monitor->usb_message_count++;
     }
     // 环形队列中写地址增加，超出回0
-    monitor->usb_message_index_write++;
-    if (monitor->usb_message_index_write >= MESSAGE_BUFFER_SIZE){
-        monitor->usb_message_index_write = 0;
+    monitor->usb_message_tmp_index_write++;
+    if (monitor->usb_message_tmp_index_write >= MESSAGE_BUFFER_SIZE){
+        monitor->usb_message_tmp_index_write = 0;
     }
 
     *index = tmp_index;
