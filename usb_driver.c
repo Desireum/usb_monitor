@@ -256,7 +256,7 @@ static const struct proc_ops usb_monitor_fops = {
     .proc_ioctl = usb_monitor_ioctl,
 ;
 #else
-static const struct file_operations usb_monitor_fops = {Registering callback functions
+static const struct file_operations usb_monitor_fops = {
     .owner = THIS_MODULE,
     .read = usb_monitor_read,
     .write = usb_monitor_write,
